@@ -20,11 +20,22 @@ produto_ids = [row[0] for row in cursor.fetchall()]
 cursor.execute("SELECT id_cliente FROM clientes")
 cliente_ids = [row[0] for row in cursor.fetchall()]
 
-for _ in range(100):
-    id_produto = random.choice(produto_ids)  # Escolhe um ID de produto existente
-    id_cliente = random.choice(cliente_ids)  # Escolhe um ID de cliente existente
+# Lista para armazenar clientes em churn
+clientes_em_churn = []
+
+# Probabilidade de churn (35%)
+probabilidade_churn = 0.35
+
+# Flag para indicar se churn foi detectado
+churn_detectado = False
+
+# Itera sobre os clientes
+for id_cliente in cliente_ids:
+    if id_cliente in clientes_em_churn:
+        continue  # Pula o restante do loop para clientes em churn
 
     # Consulta para obter o nome_produto e preco_unit com base no id_produto
+    id_produto = random.choice(produto_ids)  # Adiciona esta linha para obter um ID de produto aleatório
     cursor.execute(f"SELECT nome_produto, {preco_unit_column} FROM produtos WHERE id_produto = {id_produto}")
     nome_produto, preco_unit = cursor.fetchone()
 
@@ -33,7 +44,7 @@ for _ in range(100):
     end_date = date.today()
     data_venda = fake.date_between_dates(date_start=start_date, date_end=end_date).strftime('%Y-%m-%d')
 
-    qtd_vendida = fake.random_int(min=1, max=10)  # Gera quantidades vendidas fictícias
+    qtd_vendida = fake.random_int(min=1, max=5)  # Gera quantidades vendidas fictícias
     id_loja = fake.random_int(min=1, max=3)  # Gera IDs fictícios de lojas
 
     # Verifica se já existe um registro com os mesmos valores
@@ -44,12 +55,17 @@ for _ in range(100):
         total_venda = qtd_vendida * preco_unit  # Calcula o total_venda
         cursor.execute(f"INSERT INTO vendas (data_venda, id_produto, qtd_vendida, nome_produto, id_loja, id_cliente, total_venda) VALUES ('{data_venda}', {id_produto}, {qtd_vendida}, '{nome_produto}', {id_loja}, {id_cliente}, {total_venda})")
 
+    # Verifica a probabilidade de churn
+    if not churn_detectado and random.random() < probabilidade_churn:
+        clientes_em_churn.append(id_cliente)
+        churn_detectado = True
+        print("Churn detectado!")
+
 # Commit para salvar as alterações no banco de dados
 conn.commit()
 
 # Feche a conexão com o banco de dados
 conn.close()
-
 
 # Mensagem de saída
 print("Inserções concluídas com sucesso.")
